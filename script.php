@@ -36,6 +36,23 @@ class OnApp {
     return json_decode($output);
   }
 
+  /* API
+   * POST Add Resouces
+   */
+  function add_resources($plan_id, $content) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $this->host . "/billing/user/plans/".$plan_id."/resources.json");
+    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($ch, CURLOPT_USERPWD, $this->username . ":" . $this->password);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_HTTPHEADER,array("Content-type: application/json"));
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+    $output = curl_exec($ch);
+    curl_close($ch);
+    return json_decode($output);
+  }
+
   /* Version
    * @get
    */
@@ -164,7 +181,11 @@ $vpc_hypervisor_zones = $onapp->vpc_hypervisor_zones();
 foreach ($vpc_hypervisor_zones as $hypervisor_zone) {
   print "> [".$hypervisor_zone->id."] ".$hypervisor_zone->label."\n";
   print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
-  print '  {"resource_class":"Resource::HypervisorGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$hypervisor_zone->hypervisor_group->id.'"}'."\n";
+  print '  {"resource_class":"Resource::HypervisorGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$hypervisor_zone->id.'"}'."\n";
+
+  $add_resource = $onapp->add_resources($userPlanId, '{"resource_class":"Resource::HypervisorGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$hypervisor_zone->id.'"}');
+  var_dump($add_resource);
+
   print "\n";
 }
 
@@ -174,7 +195,11 @@ $vpc_data_store_zones = $onapp->vpc_data_store_zones();
 foreach ($vpc_data_store_zones as $data_store_zone) {
     print "> [".$data_store_zone->id."] ".$data_store_zone->label."\n";
     print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
-    print '  {"resource_class":"Resource::DataStoreGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$data_store_zone->data_store_group->id.'"}'."\n";
+    print '  {"resource_class":"Resource::DataStoreGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$data_store_zone->id.'"}'."\n";
+
+    $add_resource = $onapp->add_resources($userPlanId, '{"resource_class":"Resource::DataStoreGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$data_store_zone->id.'"}');
+    var_dump($add_resource);
+
     print "\n";
 }
 
@@ -184,6 +209,10 @@ $vpc_network_zones = $onapp->vpc_network_zones();
 foreach ($vpc_network_zones as $network_zone) {
     print "> [".$network_zone->id."] ".$network_zone->label."\n";
     print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
-    print '  {"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->network_group->id.'"}'."\n";
+    print '  {"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->id.'"}'."\n";
+
+    $add_resource = $onapp->add_resources($userPlanId, '{"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->id.'"}');
+    var_dump($add_resource);
+
     print "\n";
 }
