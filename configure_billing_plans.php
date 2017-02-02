@@ -316,3 +316,5 @@ foreach ($vpc_network_zones as $network_zone) {
     $onapp->add_resources($userPlanId, '{"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->id.'"}');
     print "\n";
 }
+
+print "Completed!":
