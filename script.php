@@ -50,7 +50,10 @@ class OnApp {
     curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
     $output = curl_exec($ch);
     curl_close($ch);
-    return json_decode($output);
+    $output = json_decode($output);
+    if (isset($output->errors)) {
+      print "[Error] ".$output->errors->type[0];
+    }
   }
 
   function delete($method) {
@@ -63,8 +66,30 @@ class OnApp {
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
     $output = curl_exec($ch);
     curl_close($ch);
-    return json_decode($output);
+    $output = json_decode($output);
+    if (isset($output->errors)) {
+      print "[Error] ".$output->errors->base[0];
+    }
   }
+
+
+  function put($method, $content) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $this->host . "/" . $method . ".json");
+    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($ch, CURLOPT_USERPWD, $this->username . ":" . $this->password);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_HTTPHEADER,array("Content-type: application/json"));
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+    $output = curl_exec($ch);
+    curl_close($ch);
+    $output = json_decode($output);
+    if (isset($output->errors)) {
+      print "[Error] ".$output->errors->type[0];
+    }
+  }
+
 
   /* Version
    * @get
@@ -79,6 +104,35 @@ class OnApp {
   function user_groups() {
     return $this->get('user_groups');
   }
+
+  function update_user_groups_billing_plan($userPlanId) {
+    /*
+    UPDATE user_groups_billing_plans set billing_plan_id=$user_plan_id"
+    PUT /user_groups/:id.json
+    {"user_group":{"billing_plan_id":""}
+    */
+    $user_groups = $this->get('user_groups');
+    foreach ($user_groups as $user_group) {
+      $this->put('user_groups/'.$user_group->user_group->id, '{"user_group":{"billing_plan_id":"'.$userPlanId.'"}');
+    }
+  }
+
+  function update_user_billing_plan($userPlanId) {
+    /*
+    UPDATE users set billing_plan_id=$user_plan_id where id NOT IN (2)
+    PUT /users/:id.json
+    {"user":{"billing_plan_id":""}
+    */
+    $users = $this->get('users');
+    foreach ($users as $user) {
+      if ($user->user->id != 2) {
+        $this->put('users/'.$user->user->id, '{"user":{"billing_plan_id":"'.$userPlanId.'"}');
+      }
+    }
+  }
+
+
+
 
   /* User Billing Plans
    * @get
@@ -197,9 +251,61 @@ if (trim($userPlanId) == null) {
 
 print "Thank you, continuing...\n";
 
+/* User Groups
+ * Set billing_plan_id on all user groups
+ */
 
+print "Obtaining user groups...\n";
 
+$user_groups = $onapp->get('user_groups');
+foreach ($user_groups as $user_group) {
+  print "[".$user_group->user_group->id."] ".$user_group->user_group->label."\n";
+}
 
+print "Update all user groups with billing plan id ".$userPlanId."? [yn]: ";
+
+$handle = fopen ("php://stdin","r");
+$billingGroupUserPlans = fgets($handle);
+
+if (trim($billingGroupUserPlans) == 'y') {
+  $onapp->update_user_groups_billing_plan($userPlanId);
+}elseif (trim($billingGroupUserPlans) == 'n') {
+  print "Skipping step...\n";
+}else{
+  print "Invalid option. Exiting.\n";
+  die;
+}
+
+/* Users
+ * Set billing_plan_id on all users
+ */
+
+print "Obtaining users...\n";
+
+$users = $onapp->get('users');
+foreach ($users as $user) {
+  print "[".$user->user->id."] ".$user->user->email."\n";
+}
+
+print "Update all users with billing plan id ".$userPlanId."? [yn]: ";
+
+$handle = fopen ("php://stdin","r");
+$billingGroupUserPlans = fgets($handle);
+
+if (trim($billingGroupUserPlans) == 'y') {
+  $onapp->update_user_billing_plan($userPlanId);
+}elseif (trim($billingGroupUserPlans) == 'n') {
+  print "Skipping step...\n";
+}else{
+  print "Invalid option. Exiting.\n";
+  die;
+}
+
+/* User and Company billing plans
+ * Delete selected user and company billing plans
+ */
+
+print "Obtaining user and company billing plans...\n";
 
 print "User billing plans:\n";
 
@@ -207,7 +313,7 @@ $user_billing_plans = $onapp->user_billing_plans();
 
 foreach ($user_billing_plans as $user_billing_plan) {
   if ($user_billing_plan->user_plan->id != 1 || $user_billing_plan->user_plan->id != $userPlanId) {
-    print "[".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label." * [MARKED FOR REMOVAL]\n";
+    print "[".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label." *\n";
   }else{
     print "[".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label."\n";
   }
@@ -219,34 +325,32 @@ $company_billing_plans = $onapp->company_billing_plans();
 
 foreach ($company_billing_plans as $company_billing_plan) {
   if ($company_billing_plan->company_plan->id != 2) {
-    print "[".$company_billing_plan->company_plan->id."] ".$company_billing_plan->company_plan->label."* [MARKED FOR REMOVAL]\n";
+    print "[".$company_billing_plan->company_plan->id."] ".$company_billing_plan->company_plan->label." *\n";
   }else{
     print "[".$company_billing_plan->company_plan->id."] ".$company_billing_plan->company_plan->label."\n";
   }
 }
 
-print "Should the billing plans be cleaned up? [yn]: ";
+print "Remove all billing plans marked *? [yn]: ";
 
 $handle = fopen ("php://stdin","r");
 $billingPlanCleanup = fgets($handle);
 
 if (trim($billingPlanCleanup) == 'y') {
 
-  print "Cleaning up billing plans marked for removal...\n";
+  print "Cleaning up billing plans...\n";
 
   foreach ($user_billing_plans as $user_billing_plan) {
     if ($user_billing_plan->user_plan->id != 1 || $user_billing_plan->user_plan->id != $userPlanId) {
       print "DELETE [".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label."\n";
-      $del_user_billing_plan = $onapp->remove_user_billing_plan($user_billing_plan->user_plan->id);
-      var_dump($del_user_billing_plan);
+      $onapp->remove_user_billing_plan($user_billing_plan->user_plan->id);
     }
   }
 
   foreach ($company_billing_plans as $company_billing_plan) {
     if ($company_billing_plan->company_plan->id != 2) {
       print "DELETE [".$company_billing_plan->company_plan->id."] ".$company_billing_plan->company_plan->label."\n";
-      $del_company_billing_plan = $onapp->remove_company_billing_plan($company_billing_plan->company_plan->id);
-      var_dump($del_company_billing_plan);
+      $onapp->remove_company_billing_plan($company_billing_plan->company_plan->id);
     }
   }
 
@@ -264,50 +368,51 @@ if (trim($billingPlanCleanup) == 'y') {
 
 
 
-$user_groups = $onapp->user_groups();
 
-foreach ($user_groups as $user_group) {
-  print "[".$user_group->user_group->id."] ".$user_group->user_group->label." SET billing_plan_id=".$userPlanId."\n";
-}
 
-print "\nGetting VPC hypervisor zones and working some magic...\n";
+
+
+
+
+
+print "Adding VPC hypervisor zone resources...\n";
 $vpc_hypervisor_zones = $onapp->vpc_hypervisor_zones();
 
 foreach ($vpc_hypervisor_zones as $hypervisor_zone) {
-  print "> [".$hypervisor_zone->id."] ".$hypervisor_zone->label."\n";
-  print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
-  print '  {"resource_class":"Resource::HypervisorGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$hypervisor_zone->id.'"}'."\n";
+  print "[".$hypervisor_zone->id."] ".$hypervisor_zone->label."\n";
+  //print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
+  //print '  {"resource_class":"Resource::HypervisorGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$hypervisor_zone->id.'"}'."\n";
 
-  $add_resource = $onapp->add_resources($userPlanId, '{"resource_class":"Resource::HypervisorGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$hypervisor_zone->id.'"}');
-  var_dump($add_resource);
+  $onapp->add_resources($userPlanId, '{"resource_class":"Resource::HypervisorGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$hypervisor_zone->id.'"}');
+
 
   print "\n";
 }
 
-print "Getting VPC data store zones and working some magic...\n";
+print "Adding VPC data store zone resources...\n";
 $vpc_data_store_zones = $onapp->vpc_data_store_zones();
 
 foreach ($vpc_data_store_zones as $data_store_zone) {
-    print "> [".$data_store_zone->id."] ".$data_store_zone->label."\n";
-    print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
-    print '  {"resource_class":"Resource::DataStoreGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$data_store_zone->id.'"}'."\n";
+    print "[".$data_store_zone->id."] ".$data_store_zone->label."\n";
+    //print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
+    //print '  {"resource_class":"Resource::DataStoreGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$data_store_zone->id.'"}'."\n";
 
-    $add_resource = $onapp->add_resources($userPlanId, '{"resource_class":"Resource::DataStoreGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$data_store_zone->id.'"}');
-    var_dump($add_resource);
+    $onapp->add_resources($userPlanId, '{"resource_class":"Resource::DataStoreGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$data_store_zone->id.'"}');
+
 
     print "\n";
 }
 
-print "Getting VPC network zones and working some magic...\n";
+print "Adding VPC network zone resources...\n";
 $vpc_network_zones = $onapp->vpc_network_zones();
 
 foreach ($vpc_network_zones as $network_zone) {
-    print "> [".$network_zone->id."] ".$network_zone->label."\n";
-    print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
-    print '  {"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->id.'"}'."\n";
+    print "[".$network_zone->id."] ".$network_zone->label."\n";
+    //print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
+    //print '  {"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->id.'"}'."\n";
 
-    $add_resource = $onapp->add_resources($userPlanId, '{"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->id.'"}');
-    var_dump($add_resource);
+    $onapp->add_resources($userPlanId, '{"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->id.'"}');
+
 
     print "\n";
 }
