@@ -53,6 +53,19 @@ class OnApp {
     return json_decode($output);
   }
 
+  function delete($method) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $this->host . "/" . $method . ".json");
+    curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
+    curl_setopt($ch, CURLOPT_USERPWD, $this->username . ":" . $this->password);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_HTTPHEADER,array("Content-type: application/json"));
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+    $output = curl_exec($ch);
+    curl_close($ch);
+    return json_decode($output);
+  }
+
   /* Version
    * @get
    */
@@ -72,6 +85,21 @@ class OnApp {
    */
   function user_billing_plans() {
     return $this->get('/billing/user/plans');
+  }
+
+  /* Company Billing Plans
+   * @get
+   */
+  function company_billing_plans() {
+    return $this->get('/billing/company/plans');
+  }
+
+  function remove_user_billing_plan($id) {
+    return $this->delete('/billing/user/plans/'.$id);
+  }
+
+  function remove_company_billing_plan($id) {
+    return $this->delete('/billing/company/plans/'.$id);
   }
 
   /* VPC Hypervisor Zones
@@ -168,6 +196,73 @@ if (trim($userPlanId) == null) {
 }
 
 print "Thank you, continuing...\n";
+
+
+
+
+
+print "User billing plans:\n";
+
+$user_billing_plans = $onapp->user_billing_plans();
+
+foreach ($user_billing_plans as $user_billing_plan) {
+  if ($user_billing_plan->user_plan->id != 1 || $user_billing_plan->user_plan->id != $userPlanId) {
+    print "[".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label." * [MARKED FOR REMOVAL]\n";
+  }else{
+    print "[".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label."\n";
+  }
+}
+
+print "Company billing plans:\n";
+
+$company_billing_plans = $onapp->company_billing_plans();
+
+foreach ($company_billing_plans as $company_billing_plan) {
+  if ($company_billing_plan->company_plan->id != 2) {
+    print "[".$company_billing_plan->company_plan->id."] ".$company_billing_plan->company_plan->label."* [MARKED FOR REMOVAL]\n";
+  }else{
+    print "[".$company_billing_plan->company_plan->id."] ".$company_billing_plan->company_plan->label."\n";
+  }
+}
+
+print "Should the billing plans be cleaned up? [yn]: ";
+
+$handle = fopen ("php://stdin","r");
+$billingPlanCleanup = fgets($handle);
+
+if (trim($billingPlanCleanup) == 'y') {
+
+  print "Cleaning up billing plans marked for removal...\n";
+
+  foreach ($user_billing_plans as $user_billing_plan) {
+    if ($user_billing_plan->user_plan->id != 1 || $user_billing_plan->user_plan->id != $userPlanId) {
+      print "DELETE [".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label."\n";
+      $del_user_billing_plan = $onapp->remove_user_billing_plan($user_billing_plan->user_plan->id);
+      var_dump($del_user_billing_plan);
+    }
+  }
+
+  foreach ($company_billing_plans as $company_billing_plan) {
+    if ($company_billing_plan->company_plan->id != 2) {
+      print "DELETE [".$company_billing_plan->company_plan->id."] ".$company_billing_plan->company_plan->label."\n";
+      $del_company_billing_plan = $onapp->remove_company_billing_plan($company_billing_plan->company_plan->id);
+      var_dump($del_company_billing_plan);
+    }
+  }
+
+}elseif (trim($billingPlanCleanup) == 'n') {
+  print "Skipping step...\n";
+}else{
+  print "Invalid option. Exiting.\n";
+  die;
+}
+
+
+
+
+
+
+
 
 $user_groups = $onapp->user_groups();
 
