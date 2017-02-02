@@ -94,14 +94,16 @@ class OnApp {
   function update_user_groups_billing_plan($userPlanId) {
     $user_groups = $this->get('user_groups');
     foreach ($user_groups as $user_group) {
-      $this->put('user_groups/'.$user_group->user_group->id, '{"user_group":{"billing_plan_id":"'.$userPlanId.'"}');
+      if ($user_group->user_group->hypervisor_id != null) {
+        $this->put('user_groups/'.$user_group->user_group->id, '{"user_group":{"billing_plan_id":"'.$userPlanId.'"}');
+      }
     }
   }
 
   function update_user_billing_plan($userPlanId) {
     $users = $this->get('users');
     foreach ($users as $user) {
-      if ($user->user->id != 2) {
+      if ($user->user->username != 'cloud_locations_manager' || $user->user->username != 'onapp_imc') {
         $this->put('users/'.$user->user->id, '{"user":{"billing_plan_id":"'.$userPlanId.'"}');
       }
     }
@@ -197,10 +199,14 @@ print "Obtaining user groups...\n";
 
 $user_groups = $onapp->get('user_groups');
 foreach ($user_groups as $user_group) {
-  print "[".$user_group->user_group->id."] ".$user_group->user_group->label."\n";
+  if ($user_group->user_group->hypervisor_id != null) {
+    print "[".$user_group->user_group->id."] ".$user_group->user_group->label." *\n";
+  }else{
+    print "[".$user_group->user_group->id."] ".$user_group->user_group->label."\n";
+  }
 }
 
-print "Update all user groups with billing plan id ".$userPlanId."? [yn]: ";
+print "Update all user groups marked * with billing plan id ".$userPlanId."? [yn]: ";
 
 $handle = fopen ("php://stdin","r");
 $billingGroupUserPlans = fgets($handle);
@@ -218,10 +224,14 @@ print "Obtaining users...\n";
 
 $users = $onapp->get('users');
 foreach ($users as $user) {
-  print "[".$user->user->id."] ".$user->user->email."\n";
+    if ($user->user->username != 'cloud_locations_manager' || $user->user->username != 'onapp_imc') {
+      print "[".$user->user->id."] ".$user->user->email." *\n";
+    }else{
+      print "[".$user->user->id."] ".$user->user->email."\n";
+    }
 }
 
-print "Update all users with billing plan id ".$userPlanId."? [yn]: ";
+print "Update all users marked * with billing plan id ".$userPlanId."? [yn]: ";
 
 $handle = fopen ("php://stdin","r");
 $billingGroupUserPlans = fgets($handle);
