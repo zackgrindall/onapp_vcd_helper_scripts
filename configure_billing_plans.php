@@ -1,5 +1,5 @@
 <?php
-/* vCD Billing Plan Configuration
+/* Configure vCD Billing Plans
  * by Zack Grindall <zack@onapp.com and Jim Freeman <jim@onapp.com>
  */
 
@@ -17,14 +17,11 @@ class OnApp {
 
   function __construct($host, $username="admin", $password="changeme")
   {
-      $this->host = $host;
-      $this->username = $username;
-      $this->password = $password;
+    $this->host = $host;
+    $this->username = $username;
+    $this->password = $password;
   }
 
-  /* API
-   * GET
-   */
   function get($method) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $this->host . "/" . $method . ".json");
@@ -36,9 +33,6 @@ class OnApp {
     return json_decode($output);
   }
 
-  /* API
-   * POST Add Resouces
-   */
   function add_resources($plan_id, $content) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $this->host . "/billing/user/plans/".$plan_id."/resources.json");
@@ -72,7 +66,6 @@ class OnApp {
     }
   }
 
-
   function put($method, $content) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $this->host . "/" . $method . ".json");
@@ -90,27 +83,15 @@ class OnApp {
     }
   }
 
-
-  /* Version
-   * @get
-   */
   function version() {
     return $this->get('version')->version;
   }
 
-  /* User Groups
-   * @get
-   */
   function user_groups() {
     return $this->get('user_groups');
   }
 
   function update_user_groups_billing_plan($userPlanId) {
-    /*
-    UPDATE user_groups_billing_plans set billing_plan_id=$user_plan_id"
-    PUT /user_groups/:id.json
-    {"user_group":{"billing_plan_id":""}
-    */
     $user_groups = $this->get('user_groups');
     foreach ($user_groups as $user_group) {
       $this->put('user_groups/'.$user_group->user_group->id, '{"user_group":{"billing_plan_id":"'.$userPlanId.'"}');
@@ -118,11 +99,6 @@ class OnApp {
   }
 
   function update_user_billing_plan($userPlanId) {
-    /*
-    UPDATE users set billing_plan_id=$user_plan_id where id NOT IN (2)
-    PUT /users/:id.json
-    {"user":{"billing_plan_id":""}
-    */
     $users = $this->get('users');
     foreach ($users as $user) {
       if ($user->user->id != 2) {
@@ -131,19 +107,10 @@ class OnApp {
     }
   }
 
-
-
-
-  /* User Billing Plans
-   * @get
-   */
   function user_billing_plans() {
     return $this->get('/billing/user/plans');
   }
 
-  /* Company Billing Plans
-   * @get
-   */
   function company_billing_plans() {
     return $this->get('/billing/company/plans');
   }
@@ -156,64 +123,41 @@ class OnApp {
     return $this->delete('/billing/company/plans/'.$id);
   }
 
-  /* VPC Hypervisor Zones
-   * @get
-   * server_type == vpc
-   */
   function vpc_hypervisor_zones() {
-
     $hypervisor_zones = $this->get('settings/hypervisor_zones');
     $vpc_hypervisor_zones = array();
-
     foreach ($hypervisor_zones as $hypervisor_zone) {
       if ($hypervisor_zone->hypervisor_group->server_type == 'vpc') {
         $vpc_hypervisor_zones[] = (object) array('id' => $hypervisor_zone->hypervisor_group->id,'label' => $hypervisor_zone->hypervisor_group->label);
      }
     }
-
     return $vpc_hypervisor_zones;
   }
 
-  /* VPC Data Store Zones
-   * @get
-   * provider_vdc_id != null
-   */
   function vpc_data_store_zones() {
-
     $data_store_zones = $this->get('settings/data_store_zones');
     $vpc_data_store_zones = array();
-
     foreach ($data_store_zones as $data_store_zone) {
       if ($data_store_zone->data_store_group->provider_vdc_id != null) {
         $vpc_data_store_zones[] = (object) array('id' => $data_store_zone->data_store_group->id, 'label' => $data_store_zone->data_store_group->label);
       }
     }
-
     return $vpc_data_store_zones;
   }
 
-  /* VPC Network Zones
-   * @get
-   * identifier !== routed-, isolated- or external-
-   */
   function vpc_network_zones() {
-
     $network_zones = $this->get('settings/network_zones');
     $vpc_network_zones = array();
-
     foreach ($network_zones as $network_zone) {
       if (strpos($network_zone->network_group->identifier, 'routed-') !== false || strpos($network_zone->network_group->identifier, 'isolated-') !== false || strpos($network_zone->network_group->identifier, 'external-') !== false) {
         $vpc_network_zones[] = (object) array('id' => $network_zone->network_group->id, 'label' => $network_zone->network_group->label);
      }
     }
-
     return $vpc_network_zones;
   }
 
 }
 
-/* Declare OnApp class
- */
 $onapp = new OnApp($args['host'], $args['username'], $args['password']);
 
 print "Getting things ready for some vCD billing plan magic\n";
@@ -249,12 +193,6 @@ if (trim($userPlanId) == null) {
   $userPlanId = trim($userPlanId);
 }
 
-print "Thank you, continuing...\n";
-
-/* User Groups
- * Set billing_plan_id on all user groups
- */
-
 print "Obtaining user groups...\n";
 
 $user_groups = $onapp->get('user_groups');
@@ -275,10 +213,6 @@ if (trim($billingGroupUserPlans) == 'y') {
   print "Invalid option. Exiting.\n";
   die;
 }
-
-/* Users
- * Set billing_plan_id on all users
- */
 
 print "Obtaining users...\n";
 
@@ -301,12 +235,7 @@ if (trim($billingGroupUserPlans) == 'y') {
   die;
 }
 
-/* User and Company billing plans
- * Delete selected user and company billing plans
- */
-
 print "Obtaining user and company billing plans...\n";
-
 print "User billing plans:\n";
 
 $user_billing_plans = $onapp->user_billing_plans();
@@ -361,31 +290,12 @@ if (trim($billingPlanCleanup) == 'y') {
   die;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 print "Adding VPC hypervisor zone resources...\n";
 $vpc_hypervisor_zones = $onapp->vpc_hypervisor_zones();
 
 foreach ($vpc_hypervisor_zones as $hypervisor_zone) {
   print "[".$hypervisor_zone->id."] ".$hypervisor_zone->label."\n";
-  //print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
-  //print '  {"resource_class":"Resource::HypervisorGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$hypervisor_zone->id.'"}'."\n";
-
   $onapp->add_resources($userPlanId, '{"resource_class":"Resource::HypervisorGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$hypervisor_zone->id.'"}');
-
-
   print "\n";
 }
 
@@ -394,12 +304,7 @@ $vpc_data_store_zones = $onapp->vpc_data_store_zones();
 
 foreach ($vpc_data_store_zones as $data_store_zone) {
     print "[".$data_store_zone->id."] ".$data_store_zone->label."\n";
-    //print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
-    //print '  {"resource_class":"Resource::DataStoreGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$data_store_zone->id.'"}'."\n";
-
     $onapp->add_resources($userPlanId, '{"resource_class":"Resource::DataStoreGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$data_store_zone->id.'"}');
-
-
     print "\n";
 }
 
@@ -408,11 +313,6 @@ $vpc_network_zones = $onapp->vpc_network_zones();
 
 foreach ($vpc_network_zones as $network_zone) {
     print "[".$network_zone->id."] ".$network_zone->label."\n";
-    //print "  POST /billing/user/plans/".$userPlanId."/resources.json\n";
-    //print '  {"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->id.'"}'."\n";
-
     $onapp->add_resources($userPlanId, '{"resource_class":"Resource::NetworkGroup","in_master_zone":"1","target_type":"Pack","target_id":"'.$network_zone->id.'"}');
-
-
     print "\n";
 }
