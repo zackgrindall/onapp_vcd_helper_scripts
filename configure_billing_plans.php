@@ -317,4 +317,4 @@ foreach ($vpc_network_zones as $network_zone) {
     print "\n";
 }
 
-print "Completed!":
+print "Completed!";
