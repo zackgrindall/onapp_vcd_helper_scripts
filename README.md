@@ -1,4 +1,4 @@
 # Helper scripts for OnApp vCD
 
 ## Configure billing plans automatically
-```php script.php host="http://sales-demo.onapp.com" username="test" password="test"```
+```php configure_billing_plans.php host="http://demo.onapp.com" username="test" password="test"```
