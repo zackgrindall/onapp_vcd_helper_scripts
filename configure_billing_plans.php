@@ -251,7 +251,7 @@ print "User billing plans:\n";
 $user_billing_plans = $onapp->user_billing_plans();
 
 foreach ($user_billing_plans as $user_billing_plan) {
-  if ($user_billing_plan->user_plan->id != 1 || $user_billing_plan->user_plan->id != $userPlanId) {
+  if ($user_billing_plan->user_plan->id != 1 && $user_billing_plan->user_plan->id != 3 && $user_billing_plan->user_plan->id != 6 && $user_billing_plan->user_plan->id != $userPlanId) {
     print "[".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label." *\n";
   }else{
     print "[".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label."\n";
@@ -280,7 +280,7 @@ if (trim($billingPlanCleanup) == 'y') {
   print "Cleaning up billing plans...\n";
 
   foreach ($user_billing_plans as $user_billing_plan) {
-    if ($user_billing_plan->user_plan->id != 1 || $user_billing_plan->user_plan->id != $userPlanId) {
+    if ($user_billing_plan->user_plan->id != 1 && $user_billing_plan->user_plan->id != 3 && $user_billing_plan->user_plan->id != 6 && $user_billing_plan->user_plan->id != $userPlanId) {
       print "DELETE [".$user_billing_plan->user_plan->id."] ".$user_billing_plan->user_plan->label."\n";
       $onapp->remove_user_billing_plan($user_billing_plan->user_plan->id);
     }
