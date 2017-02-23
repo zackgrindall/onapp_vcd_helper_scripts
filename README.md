@@ -1,4 +1,4 @@
-# Helper scripts for OnApp vCD
+# Helper scripts for OnApp 5.3 vCD
 
 ## Configure billing plans automatically
 
