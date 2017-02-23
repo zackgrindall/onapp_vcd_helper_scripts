@@ -1,7 +1,4 @@
 <?php
-/* Configure vCD Billing Plans
- * by Zack Grindall <zack@onapp.com and Jim Freeman <jim@onapp.com>
- */
 
 $args = array();
 foreach ($argv as $a) {
@@ -28,6 +25,8 @@ class OnApp {
     curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
     curl_setopt($ch, CURLOPT_USERPWD, $this->username . ":" . $this->password);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     $output = curl_exec($ch);
     curl_close($ch);
     return json_decode($output);
@@ -42,11 +41,15 @@ class OnApp {
     curl_setopt($ch, CURLOPT_HTTPHEADER,array("Content-type: application/json"));
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
     curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     $output = curl_exec($ch);
     curl_close($ch);
     $output = json_decode($output);
     if (isset($output->errors)) {
-      print "[Error] ".$output->errors->type[0];
+      var_dump($output->errors);
+      echo $plan_id;
+      echo $content;
     }
   }
 
@@ -58,11 +61,13 @@ class OnApp {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_HTTPHEADER,array("Content-type: application/json"));
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     $output = curl_exec($ch);
     curl_close($ch);
     $output = json_decode($output);
     if (isset($output->errors)) {
-      print "[Error] ".$output->errors->base[0];
+      var_dump($output->errors);
     }
   }
 
@@ -72,14 +77,19 @@ class OnApp {
     curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
     curl_setopt($ch, CURLOPT_USERPWD, $this->username . ":" . $this->password);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, TRUE);
     curl_setopt($ch, CURLOPT_HTTPHEADER,array("Content-type: application/json"));
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
     curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     $output = curl_exec($ch);
     curl_close($ch);
     $output = json_decode($output);
     if (isset($output->errors)) {
-      print "[Error] ".$output->errors->type[0];
+      var_dump($output);
+      echo $method;
+      echo $content;
     }
   }
 
@@ -95,7 +105,7 @@ class OnApp {
     $user_groups = $this->get('user_groups');
     foreach ($user_groups as $user_group) {
       if ($user_group->user_group->hypervisor_id != null) {
-        $this->put('user_groups/'.$user_group->user_group->id, '{"user_group":{"billing_plan_id":"'.$userPlanId.'"}');
+        $this->put('user_groups/'.$user_group->user_group->id, '{"user_group":{"billing_plan_id":"'.$userPlanId.'"}}');
       }
     }
   }
@@ -104,7 +114,7 @@ class OnApp {
     $users = $this->get('users');
     foreach ($users as $user) {
       if ($user->user->username != 'cloud_locations_manager' || $user->user->username != 'onapp_imc') {
-        $this->put('users/'.$user->user->id, '{"user":{"billing_plan_id":"'.$userPlanId.'"}');
+        $this->put('users/'.$user->user->id, '{"user":{"billing_plan_id":"'.$userPlanId.'"}}');
       }
     }
   }
